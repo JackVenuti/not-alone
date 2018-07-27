@@ -130,7 +130,6 @@ public class Hunted {
 			} else {
 				System.out.println("You may only take back 1 place card this turn.");
 				returnCards(1);
-				game.persecution = false;
 			}
 			if (copied) {
 				getDiscard()[0] = 0;
@@ -236,8 +235,8 @@ public class Hunted {
 				System.out.print("Choose one (1 or 2): ");
 				int choice = getInt(scan);
 				if (choice == 1) {
-					discardPlaceCard(playerNum+1);
-					discardPlaceCard(playerNum+1);
+					discardPlaceCard(playerNum);
+					discardPlaceCard(playerNum);
 				}
 				if (choice == 2) {
 					will--;
@@ -272,16 +271,16 @@ public class Hunted {
 			return;
 		}
 		System.out.println("Choose " + n + " cards to return to your hand.");
-		for (int i = 1; i <= n; i++) {
+		int i = 1;
+		while (i <= n) {
 			System.out.print("Card "+i+": ");
 			int choice = getInt(scan);
-			// something is going wrong here, if they try to choose again, it fails?
-			// infinite loop if there is nothing in your discard pile, need to check
 			if (getDiscard()[choice-1] == 0) {
 				System.out.println("This card is not in your discard pile. Choose again.");
-				returnCards(n - (i) + 1);
+				continue;
 			}
 			getDiscard()[choice-1] = 0;
+			i++;
 		}
 	}
 	

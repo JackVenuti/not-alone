@@ -45,7 +45,7 @@ public class Game {
 		numPlayers = getInt(scan);
 		available = new int[] {numPlayers, numPlayers, numPlayers, numPlayers, numPlayers, 0, 0, 0, 0, 0};
 		for (int i = 0; i < numPlayers; i++) {
-			Hunted player = new Hunted(i, this);
+			Hunted player = new Hunted(i+1, this);
 			hunted.add(player);
 		}
 		
@@ -184,13 +184,16 @@ public class Game {
 			}
 		}
 		// should choose a random place from the places the hunted can go
-		huntTokenPlace = getTargetPlace();
+		while (huntTokenPlace == ineffectivePlace1 || huntTokenPlace == ineffectivePlace2 || huntTokenPlace == artemiaTokenPlace
+				|| huntTokenPlace == artemiaTokenPlace2 || huntTokenPlace == targetTokenPlace) {
+			huntTokenPlace = getTargetPlace();
+		}
 		System.out.printf("Creature token placed on %d\n", huntTokenPlace);
 		
 		// similarly choose artemia token location if needed
-		if (rescueCounter < 7) {
-			artemiaTokenPlace = getTargetPlace();
-			while (artemiaTokenPlace == huntTokenPlace) {
+		if (rescueCounter <= 7) {
+			while (artemiaTokenPlace == ineffectivePlace1 || artemiaTokenPlace == ineffectivePlace2
+					|| artemiaTokenPlace == artemiaTokenPlace2 || artemiaTokenPlace == targetTokenPlace) {
 				artemiaTokenPlace = getTargetPlace();
 			}
 			System.out.printf("Artemia token placed on %d\n", artemiaTokenPlace);
@@ -222,6 +225,7 @@ public class Game {
 		targetTokenPlace = 0;
 		ineffectivePlace1 = 0;
 		ineffectivePlace2 = 0;
+		persecution = false;
 		chosenPlayer = -1;
 		System.out.println("Discard the played Place cards");
 		if (!stasis) {
@@ -376,6 +380,7 @@ public class Game {
 		}
 		//TODO Detour
 		if (card.getName().equals("Detour")) {
+			System.out.println("I'm not doing anything for Detour yet");
 			//im just getting lazy
 			//unfortunately, our creature chooses to play this card before place cards
 			//are revealed so then they could play this card when none of the hunted are 
@@ -393,7 +398,8 @@ public class Game {
 			chosenPlayer = getPlayer(); //choose a hunted
 			System.out.printf("Creature choses player %d as the target player.\n", chosenPlayer + 1);
 			//call discardPlaceCard until the size of their hand is 2
-			while (IntStream.of(hunted.get(chosenPlayer).getHand()).sum() > 2) {
+			while ((IntStream.of(hunted.get(chosenPlayer).getHand()).sum() -
+					IntStream.of(hunted.get(chosenPlayer).getDiscard()).sum()) > 2) {
 				hunted.get(chosenPlayer).discardPlaceCard(chosenPlayer+1);
 			}
 		}
@@ -407,7 +413,7 @@ public class Game {
 			while (targetTokenPlace == huntTokenPlace || targetTokenPlace == 0) {
 				targetTokenPlace = getTargetPlace();
 			}
-			System.out.printf("Target token placed on %d", targetTokenPlace);
+			System.out.printf("Target token placed on %d\n", targetTokenPlace);
 		}
 		//Force Field
 		// I think it will still allow the player to play this card atm
@@ -420,9 +426,10 @@ public class Game {
 		}
 		//Toxin
 		if (card.getName().equals("Toxin")) {
-
-			ineffectivePlace1 = getTargetPlace();
-			System.out.printf("/nHunted chooses %d to be ineffective this round. Players must also discard 1 Survival card. \n", ineffectivePlace1);
+			while (ineffectivePlace1 == 0 || ineffectivePlace1 == huntTokenPlace) {
+				ineffectivePlace1 = getTargetPlace();
+			}
+			System.out.printf("Hunted chooses %d to be ineffective this round. Players must also discard 1 Survival card. \n", ineffectivePlace1);
 			//thus far, we haven't accounted for survival cards
 			//probably will also need a boolean that tells the player to discard a survival card?
 		}
@@ -447,7 +454,7 @@ public class Game {
 			while (targetTokenPlace == huntTokenPlace || targetTokenPlace == 0) {
 				targetTokenPlace = getTargetPlace();
 			}
-			System.out.printf("Target token placed on %d", targetTokenPlace);
+			System.out.printf("Target token placed on %d\n", targetTokenPlace);
 		}
 		//Virus
 		if (card.getName().equals("Virus")) {
