@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.stream.IntStream;
 import java.util.Random;
 
 public class Game {
@@ -14,6 +15,7 @@ public class Game {
 	int huntTokenPlace;
 	int targetTokenPlace;
 	int artemiaTokenPlace;
+	int artemiaTokenPlace2;
 	int ineffectivePlace1;
 	int ineffectivePlace2;
 	boolean onBeach = false;
@@ -25,7 +27,14 @@ public class Game {
 	boolean beachPlayed = false;
 	boolean wreckPlayed = false;
 	boolean playTwoHuntCards = false; 
+	boolean cloned = false;
 	boolean stasis = false;
+	boolean moveCreatureExtra = false;
+	boolean loseExtraWill = false;
+	boolean persecution = false;
+	boolean loseWillArtemia = false;
+	boolean scream = false;
+	int chosenPlayer = -1;
 	int numPlayers;
 	HuntCard lastHuntCard;
 	
@@ -36,7 +45,7 @@ public class Game {
 		numPlayers = getInt(scan);
 		available = new int[] {numPlayers, numPlayers, numPlayers, numPlayers, numPlayers, 0, 0, 0, 0, 0};
 		for (int i = 0; i < numPlayers; i++) {
-			Hunted player = new Hunted();
+			Hunted player = new Hunted(i, this);
 			hunted.add(player);
 		}
 		
@@ -125,8 +134,6 @@ public class Game {
 		}
 	}
 	
-
-	
 	public void phase1() {
 		int k = 1;
 		for (Hunted player : hunted) {
@@ -211,9 +218,11 @@ public class Game {
 		beachPlayed = false;
 		wreckPlayed = false;
 		artemiaTokenPlace = 0;
+		artemiaTokenPlace2 = 0;
 		targetTokenPlace = 0;
 		ineffectivePlace1 = 0;
 		ineffectivePlace2 = 0;
+		chosenPlayer = -1;
 		System.out.println("Discard the played Place cards");
 		if (!stasis) {
 			System.out.println("Move the Rescue token.");
@@ -237,7 +246,7 @@ public class Game {
 		return creatureHand.remove(h);
 	}
 	
-	public static String getPlace(int num) {
+	public String getPlace(int num) {
 		switch (num) {
 			case 1:
 				return "The Lair"; 
@@ -302,6 +311,7 @@ public class Game {
 	}
 
 	public int getTargetPlace() {
+		
 		int[] allPlayed = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		
 		for (Hunted player : hunted) {
@@ -317,6 +327,10 @@ public class Game {
 			tokenPlace = ableToPlay.get(rand.nextInt(ableToPlay.size()));
 		}
 		return tokenPlace;
+	}
+	
+	public int getPlayer() {
+		return rand.nextInt(hunted.size());
 	}
 	
 	public void playHuntCard(HuntCard card) {
@@ -338,27 +352,27 @@ public class Game {
 				j++;
 			}
 		}
-		//Interference - I think this will work to make the places ineffective
-		//oh wait but you could still take a card back... hmmm 
+		//Interference
 		if (card.getName().equals("Interference")) {
 			ineffectivePlace1 = 4;
 			ineffectivePlace2 = 8;
 		}
-		//TODO Cataclysm
+		//Cataclysm
 		if (card.getName().equals("Cataclysm")) {
 			ineffectivePlace1 = getTargetPlace();
-			System.out.printf("/nHunted chooses %d to be ineffective this round.\n", ineffectivePlace1);
+			while (ineffectivePlace1 == huntTokenPlace || ineffectivePlace1 == 0) {
+				ineffectivePlace1 = getTargetPlace();
+			}
+			System.out.printf("Creature chooses %d to be ineffective this round.\n", ineffectivePlace1);
 		}
 		//Stasis
 		if (card.getName().equals("Stasis")) {
 			stasis = true;
 		}
-		//TODO Anticipation
+		//Anticipation
 		if (card.getName().equals("Anticipation")) {
-			//this one is hard i think
-			//each player has a number, so the creature can choose a player based on that
-			//creature should probably choose the hunted with the fewest places to go
-			//then we have to account for moving forward an extra space, probably another boolean
+			chosenPlayer = getPlayer();
+			System.out.printf("Creature choses player %d as the target player.\n", chosenPlayer + 1);
 		}
 		//TODO Detour
 		if (card.getName().equals("Detour")) {
@@ -370,26 +384,33 @@ public class Game {
 			//where the hunted are, and if it is adjacent to a tokenPlace, then move them there?
 			//yeah ill do this later
 		}
-		//TODO Fierceness
+		//Fierceness
 		if (card.getName().equals("Fierceness")) {
-			//probably a boolean again
+			loseExtraWill = true;
 		}
-		//TODO Ascendancy
+		//Ascendancy
 		if (card.getName().equals("Ascendancy")) {
-			//choose a hunted
+			chosenPlayer = getPlayer(); //choose a hunted
+			System.out.printf("Creature choses player %d as the target player.\n", chosenPlayer + 1);
 			//call discardPlaceCard until the size of their hand is 2
+			while (IntStream.of(hunted.get(chosenPlayer).getHand()).sum() > 2) {
+				hunted.get(chosenPlayer).discardPlaceCard(chosenPlayer+1);
+			}
 		}
-		//TODO Persecution
+		//Persecution
 		if (card.getName().equals("Persecution")) {
-			//another boolean
-			//just need to check the lair, the jungle, & the swamp 
+			persecution = true;
 		}
-		//TODO Scream
+		//Scream
 		if (card.getName().equals("Scream")) {
-			//need to give the hunted choice to either discard place cards or lose will 
-			//boolean? i feel like everything is booleans
+			scream = true;
+			while (targetTokenPlace == huntTokenPlace || targetTokenPlace == 0) {
+				targetTokenPlace = getTargetPlace();
+			}
+			System.out.printf("Target token placed on %d", targetTokenPlace);
 		}
-		//TODO Force Field
+		//Force Field
+		// I think it will still allow the player to play this card atm
 		if (card.getName().equals("Force Field")) {
 			while (!checkAdjacency(ineffectivePlace1, ineffectivePlace2)) {
 				ineffectivePlace1 = getTargetPlace();
@@ -397,15 +418,15 @@ public class Game {
 			}
 			System.out.printf("Target token placed on %d and %d\n", ineffectivePlace1, ineffectivePlace2);
 		}
-		//TODO Toxin
+		//Toxin
 		if (card.getName().equals("Toxin")) {
 
 			ineffectivePlace1 = getTargetPlace();
-			System.out.printf("/nHunted chooses %d to be ineffective this round.\n", ineffectivePlace1);
+			System.out.printf("/nHunted chooses %d to be ineffective this round. Players must also discard 1 Survival card. \n", ineffectivePlace1);
 			//thus far, we haven't accounted for survival cards
 			//probably will also need a boolean that tells the player to discard a survival card?
 		}
-		//TODO Mirage
+		//Mirage
 		if (card.getName().equals("Mirage")) {
 			int a = 0;
 			while (!checkAdjacency(ineffectivePlace1, ineffectivePlace2) && a < 100) {
@@ -420,20 +441,39 @@ public class Game {
 			}
 			System.out.printf("Target token placed on %d and %d\n", ineffectivePlace1, ineffectivePlace2);
 		}
-		//TODO Clone
+		//Clone
 		if (card.getName().equals("Clone")) {
-			//need to have target token do the same thing as the creature token, 
-			//otherwise, pretty easy to do
+			cloned = true;
+			while (targetTokenPlace == huntTokenPlace || targetTokenPlace == 0) {
+				targetTokenPlace = getTargetPlace();
+			}
+			System.out.printf("Target token placed on %d", targetTokenPlace);
 		}
-		//TODO Virus
+		//Virus
 		if (card.getName().equals("Virus")) {
 			//putting a single token on more than one place?
 			//yeah probably need to be able to do this for other cards too, so 
 			//maybe instead of an int, it could be an int array?
+			int a = 0;
+			while (!checkAdjacency(artemiaTokenPlace, artemiaTokenPlace2) && a < 100) {
+				artemiaTokenPlace = getTargetPlace();
+				artemiaTokenPlace2 = getTargetPlace();
+				a++;
+			}
+			while (a == 100 && !checkAdjacency(artemiaTokenPlace, artemiaTokenPlace2)) {
+				artemiaTokenPlace = getTargetPlace();
+				artemiaTokenPlace2 = artemiaTokenPlace + 1;
+			}
+			System.out.printf("Artemia token placed on %d and %d\n", artemiaTokenPlace, artemiaTokenPlace2);
 		}
-		//TODO Mutation
+		//Mutation
 		if (card.getName().equals("Mutation")) {
 			//place artemia token
+			while (artemiaTokenPlace == huntTokenPlace || artemiaTokenPlace == 0) {
+				artemiaTokenPlace = getTargetPlace();
+			}
+			System.out.printf("Artemia token placed on %d", artemiaTokenPlace);
+			loseWillArtemia = true;
 			//boolean to lose a will when landed on artemia token
 		}
 		//TODO Phobia
@@ -444,23 +484,14 @@ public class Game {
 			//im not sure how to do this anyway, ill probably do it last
 			//and the computer in the meantime can just do its normal thing
 		}
-		//TODO Despair
+		//Despair
 		if (card.getName().equals("Despair")) {
-			//again, survival cards haven't really done much yet
+			//nothing needs to be done here, assuming that the hunted play according to the rules 
 		}
 		// Flashback
 		if (card.getName().equals("Flashback")) {
 			//actually i dont think we need to do anything here
 		}
-		//I dont think we need these since they will be handled in each specific card
-		/*if (card.target) {
-			targetTokenPlace = getTargetPlace();
-			System.out.printf("Target token placed on %d\n", targetTokenPlace);
-		}
-		if (card.artemia) {
-			artemiaTokenPlace = getTargetPlace();
-			System.out.printf("Artemia token placed on %d\n", artemiaTokenPlace);
-		}*/
 	}
 	
 	public void moveRescueCounter() {
@@ -472,6 +503,10 @@ public class Game {
 	}
 	
 	public void moveAssimilationCounter() {
+		if (moveCreatureExtra) {
+			assimilationCounter++;
+			moveCreatureExtra = false;
+		}
 		assimilationCounter++;
 		if (assimilationCounter > -1) {
 			System.out.println("The creature has won the game.");
