@@ -29,10 +29,6 @@ public class Game {
 	int numPlayers;
 	HuntCard lastHuntCard;
 	
-	public static void main(String[] args) {
-		new Game().play();
-	}
-	
 	public void play() {
 		
 		startGame();
@@ -53,11 +49,16 @@ public class Game {
 		
 		while(playing) {
 			
+			// chose hunt card to play
 			HuntCard hc = chooseHuntCard();
-			//okay i just encountered an error that is pretty rare but we probably should handle it
-			//if it descides to use flashback on its very first turn, the card becomes null...
+			
+			//special cases: flashback and playing two hunt cards
 			if (hc.getName().equals("Flashback")) {
-				hc = lastHuntCard;
+				if (lastHuntCard != null) {
+					hc = lastHuntCard;
+				} else {
+					chooseHuntCard();
+				}
 			}
 			HuntCard hc2 = null;
 			if (playTwoHuntCards) {
@@ -65,6 +66,7 @@ public class Game {
 				playTwoHuntCards = false;
 			}
 			
+			// phase 1
 			System.out.println("\n-------PHASE 1-------");
 			System.out.println("-----Exploration-----");
 			currentPhase = 1;
@@ -78,6 +80,7 @@ public class Game {
 			}
 			phase1();
 			
+			// phase 2
 			System.out.println("\n-------PHASE 2-------");
 			System.out.println("-------Hunting-------\n");
 			currentPhase = 2;
@@ -91,6 +94,7 @@ public class Game {
 			}
 			phase2();
 			
+			// phase 3
 			System.out.println("\n-------PHASE 3-------");
 			System.out.println("------Reckoning------");
 			currentPhase = 3;
@@ -104,6 +108,7 @@ public class Game {
 			}
 			phase3();
 				
+			// phase 4
 			System.out.println("\n-------PHASE 4-------");
 			System.out.println("-----End of Turn-----\n");
 			currentPhase = 4;
@@ -120,161 +125,7 @@ public class Game {
 		}
 	}
 	
-	public void applyPlaceCard(Hunted player, int place, boolean copied) {
-		player.playedArtefact = false;
-		switch (place) {
-		case 1:
-			System.out.println("1. Take back to your hand the Place cards from your discard pile");
-			System.out.println("2. Copy the power of the place card with the Creature token");
-			System.out.print("Choose one (1 or 2): ");
-			int choice = getInt(scan);
-			if (choice == 1) {
-				player.resetDiscard();
-			} else {
-				if (huntTokenPlace == 10) {
-					System.out.println("You may not copy The Artefact. Choose again.");
-					applyPlaceCard(player, huntTokenPlace, false);
-				}
-				applyPlaceCard(player, huntTokenPlace, true);
-			}
-			
-			player.getDiscard()[place-1] = 1;
-			break;
-		case 2:
-			returnCards(player, 1);
-			
-			if (copied) {
-				player.getDiscard()[0] = 0;
-			}
-			break;
-		case 3:
-			System.out.println("Next turn, play 2 Place cards. Before revealing, choose one and return the second to your hand");
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 4:
-			beachPlayed = true;
-			//move marker onto/off of beach
-			if (onBeach) {
-				System.out.println("Marker counter removed from beach, move the Rescue counter forward 1 space.");
-				onBeach = false;
-				moveRescueCounter();
-			} else {
-				System.out.println("Marker counter placed on the Beach.");
-				onBeach = true;
-			}
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 5:
-			//choose new card that is not already in hand/discard
-			System.out.print("Choose a new card to add to your hand. ");
-			choice = getInt(scan);
-			player.hand[choice-1] = 1; // adds newly choosen card to hand
-			ableToPlay.add(choice); // informs creature that this card is now a place hunted can go
-			available[choice-1]++;
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 6:
-			//choose two cards to take back + the jungle stays in hand
-			returnCards(player, 2);
-			if (copied) {
-				player.getDiscard()[0] = 0;
-			}
-			break;
-		case 7:
-			System.out.println("Draw 2 Survival cards, choose one and discard the second.");
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 8:
-			wreckPlayed = true;
-			// move up counter if we decide to have game take care of this
-			System.out.println("Move the Rescue counter forward 1 space.");
-			moveRescueCounter();
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 9:
-			// choose hunted to regain will or 
-			//draw survival card (doesnt need to be handled in code)
-			System.out.println("1. Choose a Hunted to regain 1 Will.");
-			System.out.println("2. Draw 1 Survival card.");
-			System.out.print("Choose one (1 or 2): ");
-			choice = getInt(scan);
-			if (choice == 1) {
-				System.out.print("Which player would you like to regain Will? ");
-				choice = getInt(scan);
-				if (hunted.get(choice-1).will == 3) {
-					System.out.println("This player already has 3 Will.");
-				}
-				hunted.get(choice-1).will++;
-			} else {
-				player.drawSurvivalCard();
-			}
-			
-			if (!copied)
-				player.getDiscard()[place-1] = 1;
-			break;
-		case 10:
-			System.out.println("Next turn, play 2 Place cards. Resolve both Places.");
-			
-			player.playedArtefact = true;
-			player.getDiscard()[place-1] = 1;
-			break;
-		}
-	}
-	
-	public void playPlace(Hunted player, int j) {
-		System.out.printf("\nPlayer %d: Reveal your place card. ", j);
-		int place = getInt(scan);
-		// check to make sure entered card is not in their discard
-		if (player.getDiscard()[place-1] == 1) {
-			System.out.println("You cannot play this card. It is discarded.");
-			playPlace(player, j);
-		} else if (player.getHand()[place-1] == 0) { // check to make sure entered card is in their hand
-			System.out.println("You cannot play this card. You do not have it.");
-			playPlace(player, j);
-		} else if (place == ineffectivePlace1 || place == ineffectivePlace2) {
-			System.out.println("This place is ineffective this round.");
-			player.getDiscard()[place-1] = 1;
-		} else {
-			System.out.println(getPlace(place));
-			// check if they were caught by any tokens
-			if (place == huntTokenPlace) {
-				System.out.printf("You have been caught. -%d Will. Place ineffective. Move the Assimilation token.\n",(place == 1 ? 2 : 1));
-				if (place == 1) {
-					player.will -= 2;
-				} else {
-					player.will--;
-				}
-				moveAssimilationCounter();
-				if (player.will < 1) {
-					giveUp(player);
-				}
-				player.getDiscard()[place-1] = 1;
-			} else if (place == artemiaTokenPlace){ 
-				System.out.println("You are caught by the assimilation token. Place ineffective. Discard 1 Place card: ");
-				player.getDiscard()[place-1] = 1;
-				//dont they need to actually discard a card here too?
-			} else {
-				// ask if they would like to use places power or take back 1 place card
-				System.out.println("1. Use the place's power.");
-				System.out.println("2. Take back 1 discarded Place card.");
-				System.out.print("Choose one (1 or 2): ");
-				int choice = getInt(scan);
-				if (choice == 1) {
-					// TODO if beachPlayed and place is 4 or wreckPlayed and place is 8, don't let them apply place card
-					applyPlaceCard(player, place, false);
-				} else {
-					returnCards(player, 1); //return one card to hand
-					player.getDiscard()[place-1] = 1; // puts used card into discard pile
-				}
-			}
-			j++;
-		}
-	}
+
 	
 	public void phase1() {
 		int k = 1;
@@ -295,14 +146,14 @@ public class Game {
 					}
 					if (forfeit == 1) {
 						player.will--;
-						returnCards(player, 2);
+						player.returnCards(2);
 					}
 					else {
 						player.will -= 2;
-						returnCards(player, 4);
+						player.returnCards(4);
 					}
 				} else if (choice == 2) {
-					giveUp(player);
+					player.giveUp();
 				}
 				break;
 			}
@@ -345,9 +196,9 @@ public class Game {
 		int j = 1;
 		for (Hunted player : hunted) {
 			if (player.playedArtefact) {
-				playPlace(player, j);
+				player.playPlace(j);
 			}
-			playPlace(player, j);
+			player.playPlace(j);
 			j++;
 		}
 	}
@@ -372,27 +223,6 @@ public class Game {
 		scan.nextLine();
 	}
 	
-	public void returnCards(Hunted player, int n) {
-		System.out.println("Choose " + n + " cards to return to your hand.");
-		for (int i = 1; i <= n; i++) {
-			System.out.print("Card "+i+": ");
-			int choice = getInt(scan);
-			// something is going wrong here, if they try to choose again, it fails?
-			if (player.getDiscard()[choice-1] == 0) {
-				System.out.println("This card is not in your discard pile. Choose again.");
-				returnCards(player, n - (i+1));
-			}
-			player.getDiscard()[choice-1] = 0;
-		}
-	}
-	
-	public void giveUp(Hunted player) {
-		System.out.println("Regain all Will counters and take back all of discarded Place cards. Move forward the Assimilation counter.");
-		player.setWill(3);
-		player.resetDiscard();
-		moveAssimilationCounter();
-	}
-	
 	public void drawHuntCard() {
 		HuntCard card = huntCardDeck.remove(0);
 		creatureHand.add(card);
@@ -400,6 +230,10 @@ public class Game {
 	
 	public HuntCard chooseHuntCard() {
 		int h = rand.nextInt(3);
+		// to make sure that it doesn't pick flashback as the first card
+		while (creatureHand.get(h).getName().equals("Flashback") && lastHuntCard == null) {
+			h = rand.nextInt(3);
+		}
 		return creatureHand.remove(h);
 	}
 	
@@ -500,7 +334,7 @@ public class Game {
 		if (card.getName().equals("Forbidden Zone")) {
 			int j = 1;
 			for (Hunted player : hunted) {
-				discardPlaceCard(player, j);
+				player.discardPlaceCard(j);
 				j++;
 			}
 		}
@@ -689,20 +523,5 @@ public class Game {
 			} return false;
 		}
 		return false;
-	}
-	
-	public void discardPlaceCard(Hunted player, int j) {
-		System.out.printf("\nPlayer %d: You must discard a place card", j);
-		int place = getInt(scan);
-		// check to make sure entered card is not in their discard
-		if (player.getDiscard()[place-1] == 1) {
-			System.out.println("You cannot play this card. It is discarded.");
-			discardPlaceCard(player, j);
-		} else if (player.getHand()[place-1] == 0) { // check to make sure entered card is in their hand
-			System.out.println("You cannot play this card. You do not have it.");
-			discardPlaceCard(player, j);
-		} else {
-			player.getDiscard()[place-1] = 1;
-		}
 	}
 }
