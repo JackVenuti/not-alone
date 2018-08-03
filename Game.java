@@ -183,6 +183,7 @@ public class Game {
 				}
 			}
 		}
+		huntTokenPlace = getTargetPlace();
 		// should choose a random place from the places the hunted can go
 		while (huntTokenPlace == ineffectivePlace1 || huntTokenPlace == ineffectivePlace2 || huntTokenPlace == artemiaTokenPlace
 				|| huntTokenPlace == artemiaTokenPlace2 || huntTokenPlace == targetTokenPlace) {
@@ -327,10 +328,10 @@ public class Game {
 		}
 		// should choose a random place from the places the hunted can go
 		int tokenPlace = ableToPlay.get(rand.nextInt(ableToPlay.size()));
-		while (allPlayed[tokenPlace-1] == available[tokenPlace-1]) {
+		while (allPlayed[tokenPlace] == available[tokenPlace]) {
 			tokenPlace = ableToPlay.get(rand.nextInt(ableToPlay.size()));
 		}
-		return tokenPlace;
+		return tokenPlace+1;
 	}
 	
 	public int getPlayer() {
@@ -479,7 +480,7 @@ public class Game {
 			while (artemiaTokenPlace == huntTokenPlace || artemiaTokenPlace == 0) {
 				artemiaTokenPlace = getTargetPlace();
 			}
-			System.out.printf("Artemia token placed on %d", artemiaTokenPlace);
+			System.out.printf("Artemia token placed on %d\n", artemiaTokenPlace);
 			loseWillArtemia = true;
 			//boolean to lose a will when landed on artemia token
 		}

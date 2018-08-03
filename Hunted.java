@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.stream.IntStream;
 
 //import java.util.ArrayList;
 
@@ -192,7 +193,7 @@ public class Hunted {
 			playPlace(j);
 		} else if (place == game.ineffectivePlace1 || place == game.ineffectivePlace2) {
 			System.out.println("This place is ineffective this round.");
-			getDiscard()[place-1] = 1;
+			discard[place-1] = 1;
 		} else {
 			System.out.println(game.getPlace(place));
 			// check if they were caught by any tokens
@@ -216,7 +217,7 @@ public class Hunted {
 				if (will < 1) {
 					giveUp();
 				}
-				getDiscard()[place-1] = 1;
+				discard[place-1] = 1;
 			} else if (place == game.artemiaTokenPlace || place == game.artemiaTokenPlace2){ 
 				System.out.println("You are caught by the assimilation token. Place ineffective. Discard 1 Place card: ");
 				getDiscard()[place-1] = 1;
@@ -260,19 +261,13 @@ public class Hunted {
 	}
 	
 	public void returnCards(int n) {
-		boolean noDiscards = true;
-		for (int h = 0; h < getDiscard().length; h++) {
-			if (getDiscard()[h] == 1) {
-				noDiscards = false;
-			}
-		}
-		if (noDiscards) {
-			System.out.println("You have nothing in your discards.");
-			return;
-		}
 		System.out.println("Choose " + n + " cards to return to your hand.");
 		int i = 1;
 		while (i <= n) {
+			if ((IntStream.of(discard).sum())  == 0) {
+				System.out.println("You have nothing in your discards.");
+				break;
+			}
 			System.out.print("Card "+i+": ");
 			int choice = getInt(scan);
 			if (getDiscard()[choice-1] == 0) {
@@ -298,18 +293,23 @@ public class Hunted {
 	}
 	
 	public void discardPlaceCard(int j) {
-		System.out.printf("\nPlayer %d: You must discard a place card", j);
-		System.out.print("\nCard to discard: ");
-		int place = getInt(scan);
-		// check to make sure entered card is not in their discard
-		if (getDiscard()[place-1] == 1) {
-			System.out.println("You cannot play this card. It is discarded.");
-			discardPlaceCard(j);
-		} else if (getHand()[place-1] == 0) { // check to make sure entered card is in their hand
-			System.out.println("You cannot play this card. You do not have it.");
-			discardPlaceCard(j);
+		if ((IntStream.of(hand).sum()) == 0) {
+			System.out.println("You have nothing in your hand to discard. You must give up.");
+			giveUp();
 		} else {
-			getDiscard()[place-1] = 1;
+		System.out.printf("\nPlayer %d: You must discard a place card", j);
+			System.out.print("\nCard to discard: ");
+			int place = getInt(scan);
+			// check to make sure entered card is not in their discard
+			if (getDiscard()[place-1] == 1) {
+				System.out.println("You cannot play this card. It is discarded.");
+				discardPlaceCard(j);
+			} else if (getHand()[place-1] == 0) { // check to make sure entered card is in their hand
+				System.out.println("You cannot play this card. You do not have it.");
+				discardPlaceCard(j);
+			} else {
+				getDiscard()[place-1] = 1;
+			}
 		}
 	}
 }
